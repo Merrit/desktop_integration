@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+
+Name=Rice Cooker
+Comment=App that amazingly cooks your rice!
+Categories=Utility;
+
+Icon=
+Exec=
+Terminal=false
+StartupWMClass=
