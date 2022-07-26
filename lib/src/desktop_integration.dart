@@ -92,7 +92,7 @@ class DesktopIntegration {
     );
     desktopFileContents = desktopFileContents.replaceAll(
       RegExp(r'Exec=.*'),
-      'Exec=${Platform.resolvedExecutable}',
+      'Exec="${Platform.resolvedExecutable}"',
     );
     PackageInfo packageInfo = await PackageInfo.fromPlatform();
     desktopFileContents = desktopFileContents.replaceAll(
