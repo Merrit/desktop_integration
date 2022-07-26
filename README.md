@@ -13,6 +13,9 @@ and the Flutter guide for
 
 Simple way for Flutter apps to integrate with the desktop OS.
 
+Be sure to add this line if called before runApp()
+`WidgetsFlutterBinding.ensureInitialized();`
+
 <!-- 
 ## Features
 
