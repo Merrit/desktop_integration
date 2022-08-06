@@ -19,18 +19,37 @@ class DesktopIntegration {
   /// `com.example.appName`
   final String packageName;
 
+  /// The name of the `.lnk` file on Windows.
+  final String linkFileName;
+
   // TODO: Add file properties here.
 
   const DesktopIntegration({
-    required this.desktopFilePath,
+    this.desktopFilePath = '',
     required this.iconPath,
-    required this.packageName,
+    this.packageName = '',
+    this.linkFileName = '',
   });
 
   /// Integrate app into the operating system's applications menu.
   Future<void> addToApplicationsMenu() async {
+    _validateInputs();
     await _installIcon();
     await _installDesktopFile();
+  }
+
+  void _validateInputs() {
+    switch (Platform.operatingSystem) {
+      case 'linux':
+        if (desktopFilePath == '' || packageName == '') {
+          throw Exception('Both desktopFilePath and packageName required.');
+        }
+        break;
+      case 'windows':
+        if (linkFileName == '') {
+          throw Exception('linkFileName is required.');
+        }
+    }
   }
 
   /// Install icon.
@@ -49,42 +68,54 @@ class DesktopIntegration {
         // await iconFile.rename(pathWithName);
         break;
       case 'windows':
+        // Windows doesn't need to move the icon anywhere special.
         break;
     }
   }
 
   /// Install menu item.
   Future<void> _installDesktopFile() async {
-    final desktopFile = File(desktopFilePath);
-    if (!await desktopFile.exists()) {
-      throw Exception('Desktop file at $desktopFilePath does not exist.');
-    }
-
-    final String desktopFileName = desktopFilePath.split('/').last;
-
-    late File installedDesktopFile;
     switch (Platform.operatingSystem) {
       case 'linux':
         // https://wiki.archlinux.org/title/desktop_entries
+        final desktopFile = File(desktopFilePath);
+        if (!await desktopFile.exists()) {
+          throw Exception('Desktop file at $desktopFilePath does not exist.');
+        }
+        final String desktopFileName = desktopFilePath.split('/').last;
         await Process.run(
           'desktop-file-install',
           ['--dir=${dataHome.path}/applications', desktopFilePath],
         );
         // TODO: Cleanup this rename / get new path mess.
-        installedDesktopFile = await File(
+        final installedDesktopFile = await File(
           '${dataHome.path}/applications/$desktopFileName',
         ).rename('${dataHome.path}/applications/$packageName.desktop');
+        await _updateDesktopFile(installedDesktopFile);
+        await _validateDesktopFile();
         break;
       case 'windows':
+        // https://docs.microsoft.com/en-us/troubleshoot/windows-client/admin-development/create-desktop-shortcut-with-wsh
+        final result = await Process.run('powershell', [
+          '-NoProfile',
+          '\$wShell = New-Object -comObject WScript.Shell',
+          ';',
+          '\$shortcut = \$wShell.CreateShortcut("\$env:APPDATA\\Microsoft\\Windows\\Start Menu\\Programs\\$linkFileName.lnk")',
+          ';',
+          '\$shortcut.TargetPath = "${Platform.resolvedExecutable}"',
+          ';',
+          '\$shortcut.IconLocation = "$iconPath"',
+          ';',
+          '\$shortcut.Save()',
+        ]);
+        if (result.stderr != '') {
+          print('Unable to create app shortcut: ${result.stderr}');
+        }
         break;
     }
-
-    await _updateDesktopFile(installedDesktopFile);
-    await _validateDesktopFile();
   }
 
   Future<void> _updateDesktopFile(File desktopFile) async {
-    // TODO: Add windows implementation.
     String desktopFileContents = await desktopFile.readAsString();
     desktopFileContents = desktopFileContents.replaceAll(
       RegExp(r'Icon=.*'),
