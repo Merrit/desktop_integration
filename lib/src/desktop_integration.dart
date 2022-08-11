@@ -7,10 +7,10 @@ import 'package:xdg_directories/xdg_directories.dart';
 final String _linuxAppsMenuDestination = '${dataHome.path}/applications';
 final String _linuxAutostartDestination = '${configHome.path}/autostart';
 
-const String _windowsAppsMenuDestination =
-    '\$env:APPDATA\\Microsoft\\Windows\\Start Menu\\Programs';
-const String _windowsAutostartDestination =
-    '\$env:APPDATA\\Microsoft\\Windows\\Start Menu\\Programs\\Startup';
+final String _windowsAppsMenuDestination =
+    '${Platform.environment['APPDATA']}\\Microsoft\\Windows\\Start Menu\\Programs';
+final String _windowsAutostartDestination =
+    '${Platform.environment['APPDATA']}\\Microsoft\\Windows\\Start Menu\\Programs\\Startup';
 
 enum MenuEntryLocation {
   appsMenu,
@@ -89,7 +89,7 @@ class DesktopIntegration {
         await File('$_linuxAutostartDestination/$packageName.desktop').delete();
         break;
       case 'windows':
-        await File('$_windowsAutostartDestination\\$linkFileName').delete();
+        await File('$_windowsAutostartDestination\\$linkFileName.lnk').delete();
         break;
     }
   }
