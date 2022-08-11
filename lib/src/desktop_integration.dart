@@ -89,7 +89,7 @@ class DesktopIntegration {
         await File('$_linuxAutostartDestination/$packageName.desktop').delete();
         break;
       case 'windows':
-        await File('$_windowsAutostartDestination\\$linkFileName.lnk').delete();
+        await File('$_windowsAutostartDestination\\$linkFileName').delete();
         break;
     }
   }
