@@ -48,7 +48,7 @@ class DesktopIntegration {
   /// Integrate app into the operating system's applications menu.
   Future<void> addToApplicationsMenu() async {
     await _installIcon();
-    await _installDesktopFile();
+    await _installMenuEntry();
   }
 
   /// Install icon.
@@ -73,7 +73,7 @@ class DesktopIntegration {
   }
 
   /// Install menu item.
-  Future<void> _installDesktopFile() async {
+  Future<void> _installMenuEntry() async {
     switch (Platform.operatingSystem) {
       case 'linux':
         // https://wiki.archlinux.org/title/desktop_entries
