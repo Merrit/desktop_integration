@@ -35,7 +35,7 @@ Future<void> main() async {
     });
 
     test('updating desktop file works', () async {
-      const desktopIntegration = DesktopIntegration(
+      final desktopIntegration = DesktopIntegration(
         desktopFilePath: 'assets/com.example.ricecooker.desktop',
         iconPath: 'assets/icon.svg',
         packageName: 'com.example.ricecooker',
@@ -56,7 +56,7 @@ Future<void> main() async {
       final execEntry = RegExp(r'Exec=.*') //
           .firstMatch(desktopFileContents)
           ?.group(0);
-      expect(execEntry!.split('/').last, 'flutter_tester');
+      expect(execEntry!.split('/').last, 'flutter_tester"');
 
       final startupWMClassEntry = RegExp(r'StartupWMClass=.*') //
           .firstMatch(desktopFileContents)

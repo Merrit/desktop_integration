@@ -1,12 +1,28 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:xdg_directories/xdg_directories.dart';
+
+final String _linuxAppsMenuDestination = '${dataHome.path}/applications';
+final String _linuxAutostartDestination = '${configHome.path}/autostart';
+
+const String _windowsAppsMenuDestination =
+    '\$env:APPDATA\\Microsoft\\Windows\\Start Menu\\Programs';
+const String _windowsAutostartDestination =
+    '\$env:APPDATA\\Microsoft\\Windows\\Start Menu\\Programs\\Startup';
+
+enum MenuEntryLocation {
+  appsMenu,
+  autostart,
+}
 
 class DesktopIntegration {
   /// The path to the desktop file for Linux, should be a `.desktop` file.
   /// https://wiki.archlinux.org/title/desktop_entries
   final String desktopFilePath;
+
+  final File _originalDesktopFile;
 
   /// The full path to the icon file to install.
   ///
@@ -20,18 +36,21 @@ class DesktopIntegration {
   /// The name of the `.lnk` file for Windows.
   final String linkFileName;
 
-  // TODO: Add file properties here.
-
-  DesktopIntegration({
-    this.desktopFilePath = '',
+  DesktopIntegration._(
+    this._originalDesktopFile, {
+    required this.desktopFilePath,
     required this.iconPath,
-    this.packageName = '',
-    this.linkFileName = '',
-  }) {
-    _validateInputs();
-  }
+    required this.packageName,
+    required this.linkFileName,
+  });
 
-  void _validateInputs() {
+  factory DesktopIntegration({
+    String desktopFilePath = '',
+    required String iconPath,
+    String packageName = '',
+    String linkFileName = '',
+  }) {
+    // Validate inputs.
     switch (Platform.operatingSystem) {
       case 'linux':
         if (desktopFilePath == '' || packageName == '') {
@@ -43,12 +62,36 @@ class DesktopIntegration {
           throw Exception('linkFileName is required.');
         }
     }
+
+    return DesktopIntegration._(
+      File(desktopFilePath),
+      desktopFilePath: desktopFilePath,
+      iconPath: iconPath,
+      packageName: packageName,
+      linkFileName: linkFileName,
+    );
   }
 
   /// Integrate app into the operating system's applications menu.
   Future<void> addToApplicationsMenu() async {
     await _installIcon();
-    await _installMenuEntry();
+    await _installMenuEntry(MenuEntryLocation.appsMenu);
+  }
+
+  Future<void> enableAutostart() async {
+    await _installIcon();
+    await _installMenuEntry(MenuEntryLocation.autostart);
+  }
+
+  Future<void> disableAutostart() async {
+    switch (Platform.operatingSystem) {
+      case 'linux':
+        await File('$_linuxAutostartDestination/$packageName.desktop').delete();
+        break;
+      case 'windows':
+        await File('$_windowsAutostartDestination\\$linkFileName.lnk').delete();
+        break;
+    }
   }
 
   /// Install icon.
@@ -73,33 +116,38 @@ class DesktopIntegration {
   }
 
   /// Install menu item.
-  Future<void> _installMenuEntry() async {
+  Future<void> _installMenuEntry(MenuEntryLocation menuEntryLocation) async {
     switch (Platform.operatingSystem) {
       case 'linux':
+        final String destination =
+            (menuEntryLocation == MenuEntryLocation.appsMenu)
+                ? _linuxAppsMenuDestination
+                : _linuxAutostartDestination;
         // https://wiki.archlinux.org/title/desktop_entries
-        final desktopFile = File(desktopFilePath);
-        if (!await desktopFile.exists()) {
+        if (!await _originalDesktopFile.exists()) {
           throw Exception('Desktop file at $desktopFilePath does not exist.');
         }
         final String desktopFileName = desktopFilePath.split('/').last;
         await Process.run(
           'desktop-file-install',
-          ['--dir=${dataHome.path}/applications', desktopFilePath],
+          ['--dir=$destination', desktopFilePath],
         );
-        // TODO: Cleanup this rename / get new path mess.
-        final installedDesktopFile = await File(
-          '${dataHome.path}/applications/$desktopFileName',
-        ).rename('${dataHome.path}/applications/$packageName.desktop');
+        File installedDesktopFile = await File('$destination/$desktopFileName')
+            .rename('$destination/$packageName.desktop');
         await _updateDesktopFile(installedDesktopFile);
         await _validateDesktopFile();
         break;
       case 'windows':
+        final String destination =
+            (menuEntryLocation == MenuEntryLocation.appsMenu)
+                ? _windowsAppsMenuDestination
+                : _windowsAutostartDestination;
         // https://docs.microsoft.com/en-us/troubleshoot/windows-client/admin-development/create-desktop-shortcut-with-wsh
         final result = await Process.run('powershell', [
           '-NoProfile',
           '\$wShell = New-Object -comObject WScript.Shell',
           ';',
-          '\$shortcut = \$wShell.CreateShortcut("\$env:APPDATA\\Microsoft\\Windows\\Start Menu\\Programs\\$linkFileName.lnk")',
+          '\$shortcut = \$wShell.CreateShortcut("$destination\\$linkFileName.lnk")',
           ';',
           '\$shortcut.TargetPath = "${Platform.resolvedExecutable}"',
           ';',
@@ -108,7 +156,7 @@ class DesktopIntegration {
           '\$shortcut.Save()',
         ]);
         if (result.stderr != '') {
-          print('Unable to create app shortcut: ${result.stderr}');
+          debugPrint('Unable to create app shortcut: ${result.stderr}');
         }
         break;
     }
@@ -142,7 +190,7 @@ class DesktopIntegration {
           [desktopFilePath],
         );
         if (result.stderr != '' || result.stdout != '') {
-          print('''
+          debugPrint('''
 Desktop file failed validation:
 ${result.stdout}
 ${result.stderr}''');
