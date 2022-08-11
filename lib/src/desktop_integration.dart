@@ -22,18 +22,13 @@ class DesktopIntegration {
 
   // TODO: Add file properties here.
 
-  const DesktopIntegration({
+  DesktopIntegration({
     this.desktopFilePath = '',
     required this.iconPath,
     this.packageName = '',
     this.linkFileName = '',
-  });
-
-  /// Integrate app into the operating system's applications menu.
-  Future<void> addToApplicationsMenu() async {
+  }) {
     _validateInputs();
-    await _installIcon();
-    await _installDesktopFile();
   }
 
   void _validateInputs() {
@@ -48,6 +43,12 @@ class DesktopIntegration {
           throw Exception('linkFileName is required.');
         }
     }
+  }
+
+  /// Integrate app into the operating system's applications menu.
+  Future<void> addToApplicationsMenu() async {
+    await _installIcon();
+    await _installDesktopFile();
   }
 
   /// Install icon.
