@@ -4,10 +4,8 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:xdg_directories/xdg_directories.dart';
 
 class DesktopIntegration {
-  /// The path to the desktop file. On Linux this should be a `.desktop` file.
+  /// The path to the desktop file for Linux, should be a `.desktop` file.
   /// https://wiki.archlinux.org/title/desktop_entries
-  ///
-  /// On Windows this should be ...
   final String desktopFilePath;
 
   /// The full path to the icon file to install.
@@ -19,7 +17,7 @@ class DesktopIntegration {
   /// `com.example.appName`
   final String packageName;
 
-  /// The name of the `.lnk` file on Windows.
+  /// The name of the `.lnk` file for Windows.
   final String linkFileName;
 
   // TODO: Add file properties here.
