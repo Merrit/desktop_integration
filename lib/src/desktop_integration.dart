@@ -86,10 +86,20 @@ class DesktopIntegration {
   Future<void> disableAutostart() async {
     switch (Platform.operatingSystem) {
       case 'linux':
-        await File('$_linuxAutostartDestination/$packageName.desktop').delete();
+        try {
+          await File('$_linuxAutostartDestination/$packageName.desktop')
+              .delete();
+        } finally {
+          debugPrint('No desktop file found to remove.');
+        }
         break;
       case 'windows':
-        await File('$_windowsAutostartDestination\\$linkFileName.lnk').delete();
+        try {
+          await File('$_windowsAutostartDestination\\$linkFileName.lnk')
+              .delete();
+        } finally {
+          debugPrint('No startup shortcut found to remove.');
+        }
         break;
     }
   }
